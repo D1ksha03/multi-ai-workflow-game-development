@@ -24,3 +24,17 @@ HTML5 Canvas, JavaScript, CSS
 /chatgpt-version/   # Code generated using ChatGPT
 /claude-version/    # Code generated using Claude
 /prompts/           # All prompts used (Gemini + iterations)
+
+
+⚖️ Comparison Summary
+Criteria                    	ChatGPT	              Claude
+Code completeness	
+	
+
+Bugs/issues	
+	
+
+Readability	
+	
+
+Ease of modification

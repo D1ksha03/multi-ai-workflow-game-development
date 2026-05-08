@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Mosaic – Avengers Assemble</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        overflow: hidden;
+        background: black;
+        font-family: 'Segoe UI', sans-serif;
+        color: white;
+    }
+
+    canvas {
+        display: block;
+    }
+
+    #gameCanvas {
+        background: #000;
+    }
+
+    #startScreen {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background:
+            radial-gradient(circle at top, #0b1d3a, #000);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+
+    #startScreen h1 {
+        font-size: 52px;
+        color: #00eaff;
+        text-shadow: 0 0 20px #00eaff;
+        margin-bottom: 30px;
+    }
+
+    #startBtn {
+        padding: 15px 35px;
+        border: 1px solid #00eaff;
+        background: rgba(0,255,255,0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 18px;
+        box-shadow: 0 0 20px #00eaff;
+        transition: 0.3s;
+    }
+
+    #startBtn:hover {
+        transform: scale(1.05);
+    }
+
+    #ui {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 10px;
+        z-index: 5;
+    }
+
+    .btn {
+        border: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+    }
+
+    .pause {
+        background: rgba(0,255,0,0.2);
+        box-shadow: 0 0 10px #00ff00;
+    }
+
+    .close {
+        background: rgba(255,0,0,0.2);
+        box-shadow: 0 0 10px #ff0000;
+    }
+
+    #score {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        font-size: 20px;
+        z-index: 5;
+    }
+
+    #titleRank {
+        position: absolute;
+        top: 45px;
+        left: 15px;
+        color: #00eaff;
+        z-index: 5;
+    }
+
+    #jarvis {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        width: 350px;
+        padding: 12px;
+        border: 1px solid #00eaff;
+        background: rgba(0,0,0,0.7);
+        border-radius: 12px;
+        font-size: 14px;
+        z-index: 5;
+    }
+
+    #missionBox {
+        position: absolute;
+        right: 20px;
+        top: 100px;
+        border: 1px solid #00eaff;
+        padding: 15px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.6);
+        z-index: 5;
+    }
+
+    #missionBox h3 {
+        margin-bottom: 10px;
+        color: #00eaff;
+    }
+
+    #sideCanvas {
+        background: rgba(255,255,255,0.02);
+    }
+
+</style>
+</head>
+
+<body>
+
+<div id="startScreen">
+    <h1>🚀 PROJECT MOSAIC</h1>
+    <button id="startBtn">START MISSION</button>
+</div>
+
+<div id="ui">
+    <button class="btn pause">⏸</button>
+    <button class="btn close">✖</button>
+</div>
+
+<div id="score">Score: 0</div>
+<div id="titleRank">Winter Soldier Fanboy</div>
+
+<div id="missionBox">
+    <h3>Mission Hologram</h3>
+    <canvas id="sideCanvas" width="120" height="120"></canvas>
+</div>
+
+<div id="jarvis">
+    Jarvis: Welcome, Avenger.
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const sideCanvas = document.getElementById("sideCanvas");
+const sideCtx = sideCanvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const ROWS = 15;
+const COLS = 8;
+const SIZE = 42;
+
+const OFFSET_X = 80;
+const OFFSET_Y = 50;
+
+const COLORS = {
+    R: "#ff0033",
+    B: "#00ccff",
+    G: "#00ff99"
+};
+
+let grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+let mission = [];
+
+let score = 0;
+let paused = false;
+
+let shooter = {
+    x: canvas.width / 2,
+    y: canvas.height - 70,
+    color: randomColor()
+};
+
+let currentShot = null;
+
+function randomColor() {
+    const keys = Object.keys(COLORS);
+    return COLORS[keys[Math.floor(Math.random() * keys.length)]];
+}
+
+function drawBubble(x, y, color) {
+    ctx.beginPath();
+    ctx.arc(x, y, SIZE / 2, 0, Math.PI * 2);
+
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 20;
+
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+}
+
+function drawGrid() {
+
+    for (let r = 0; r < ROWS; r++) {
+
+        for (let c = 0; c < COLS; c++) {
+
+            let bubble = grid[r][c];
+
+            if (bubble) {
+
+                drawBubble(
+                    OFFSET_X + c * SIZE,
+                    OFFSET_Y + r * SIZE,
+                    bubble
+                );
+            }
+        }
+    }
+}
+
+function drawShooter() {
+
+    drawBubble(shooter.x, shooter.y, shooter.color);
+
+    if (mousePos) {
+
+        ctx.beginPath();
+        ctx.moveTo(shooter.x, shooter.y);
+        ctx.lineTo(mousePos.x, mousePos.y);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.setLineDash([5,5]);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+    }
+}
+
+function shoot(angle) {
+
+    currentShot = {
+        x: shooter.x,
+        y: shooter.y,
+        dx: Math.cos(angle) * 8,
+        dy: Math.sin(angle) * 8,
+        color: shooter.color
+    };
+
+    shooter.color = randomColor();
+}
+
+let mousePos = null;
+
+canvas.addEventListener("mousemove", (e) => {
+    mousePos = {
+        x: e.clientX,
+        y: e.clientY
+    };
+});
+
+canvas.addEventListener("click", (e) => {
+
+    if (paused || currentShot) return;
+
+    let angle = Math.atan2(
+        e.clientY - shooter.y,
+        e.clientX - shooter.x
+    );
+
+    shoot(angle);
+});
+
+function updateShot() {
+
+    if (!currentShot) return;
+
+    currentShot.x += currentShot.dx;
+    currentShot.y += currentShot.dy;
+
+    if (
+        currentShot.x < OFFSET_X ||
+        currentShot.x > OFFSET_X + COLS * SIZE
+    ) {
+        currentShot.dx *= -1;
+    }
+
+    for (let r = 0; r < ROWS; r++) {
+
+        for (let c = 0; c < COLS; c++) {
+
+            if (grid[r][c]) {
+
+                let gx = OFFSET_X + c * SIZE;
+                let gy = OFFSET_Y + r * SIZE;
+
+                let dist = Math.hypot(
+                    currentShot.x - gx,
+                    currentShot.y - gy
+                );
+
+                if (dist < SIZE - 5) {
+
+                    snapToGrid(currentShot);
+                    return;
+                }
+            }
+        }
+    }
+
+    if (currentShot.y <= OFFSET_Y) {
+        snapToGrid(currentShot);
+    }
+}
+
+function snapToGrid(shot) {
+
+    let col = Math.round(
+        (shot.x - OFFSET_X) / SIZE
+    );
+
+    let row = Math.round(
+        (shot.y - OFFSET_Y) / SIZE
+    );
+
+    row = Math.max(0, Math.min(ROWS - 1, row));
+    col = Math.max(0, Math.min(COLS - 1, col));
+
+    while (row > 0 && grid[row][col]) {
+        row--;
+    }
+
+    if (!grid[row][col]) {
+        grid[row][col] = shot.color;
+    }
+
+    currentShot = null;
+
+    let matched = checkMatch();
+
+    if (!matched) {
+        jarvis(randomMissComment());
+    }
+
+    applyGravity();
+
+    checkGameOver();
+}
+
+function generateMission() {
+
+    const patterns = [
+
+        [
+            ["R", "R"],
+            ["R", "R"]
+        ],
+
+        [
+            ["B", "B", "B"]
+        ],
+
+        [
+            ["G", null, "G"],
+            [null, "G", null],
+            ["G", null, "G"]
+        ],
+
+        [
+            ["R", "B", "G"],
+            ["G", "R", "B"],
+            ["B", "G", "R"]
+        ]
+    ];
+
+    let selected;
+
+    if (score < 100) {
+        selected = patterns[Math.floor(Math.random() * 2)];
+    }
+    else if (score < 500) {
+        selected = patterns[Math.floor(Math.random() * 3)];
+    }
+    else {
+        selected = patterns[Math.floor(Math.random() * patterns.length)];
+    }
+
+    mission = selected.map(row =>
+        row.map(cell => {
+            if (!cell) return null;
+            return COLORS[cell];
+        })
+    );
+
+    drawMission();
+}
+
+function drawMission() {
+
+    sideCtx.clearRect(0,0,120,120);
+
+    for (let r = 0; r < mission.length; r++) {
+
+        for (let c = 0; c < mission[0].length; c++) {
+
+            if (mission[r][c]) {
+
+                sideCtx.fillStyle = mission[r][c];
+                sideCtx.shadowColor = mission[r][c];
+                sideCtx.shadowBlur = 10;
+
+                sideCtx.beginPath();
+                sideCtx.arc(
+                    20 + c * 28,
+                    20 + r * 28,
+                    10,
+                    0,
+                    Math.PI * 2
+                );
+                sideCtx.fill();
+
+                sideCtx.shadowBlur = 0;
+            }
+        }
+    }
+}
+
+function checkMatch() {
+
+    let found = false;
+
+    for (let r = 0; r < ROWS; r++) {
+
+        for (let c = 0; c < COLS; c++) {
+
+            let match = true;
+
+            for (let mr = 0; mr < mission.length; mr++) {
+
+                for (let mc = 0; mc < mission[0].length; mc++) {
+
+                    if (mission[mr][mc]) {
+
+                        if (
+                            grid[r + mr]?.[c + mc] !== mission[mr][mc]
+                        ) {
+                            match = false;
+                        }
+                    }
+                }
+            }
+
+            if (match) {
+
+                found = true;
+
+                for (let mr = 0; mr < mission.length; mr++) {
+
+                    for (let mc = 0; mc < mission[0].length; mc++) {
+
+                        if (mission[mr][mc]) {
+
+                            grid[r + mr][c + mc] = null;
+                        }
+                    }
+                }
+
+                score += 10;
+
+                updateScore();
+
+                jarvis(randomGoodComment());
+
+                generateMission();
+            }
+        }
+    }
+
+    return found;
+}
+
+function applyGravity() {
+
+    for (let c = 0; c < COLS; c++) {
+
+        for (let r = ROWS - 1; r >= 0; r--) {
+
+            if (!grid[r][c]) {
+
+                for (let k = r - 1; k >= 0; k--) {
+
+                    if (grid[k][c]) {
+
+                        grid[r][c] = grid[k][c];
+                        grid[k][c] = null;
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function updateScore() {
+
+    document.getElementById("score").innerText =
+        "Score: " + score;
+
+    let title = "Winter Soldier Fanboy";
+
+    if (score >= 500 && score < 1000) {
+        title = "Low-Key Loki";
+    }
+    else if (score >= 1000 && score < 1500) {
+        title = "Vibe-Ranium Soldier";
+    }
+    else if (score >= 1500) {
+        title = "The Main Character";
+    }
+
+    document.getElementById("titleRank").innerText = title;
+}
+
+function jarvis(text) {
+    document.getElementById("jarvis").innerText =
+        "Jarvis: " + text;
+}
+
+function randomGoodComment() {
+
+    const lines = [
+        "No cap, your aim is fire 🔥",
+        "Stark would be jealous.",
+        "Multiverse MVP behavior.",
+        "That shot had Infinity Stone energy."
+    ];
+
+    return lines[Math.floor(Math.random() * lines.length)];
+}
+
+function randomMissComment() {
+
+    const lines = [
+        "That's not very 'Strongest Avenger' of you 😬",
+        "Is this your first time in the Multiverse?",
+        "Dread it. Run from it. The bottom arrives all the same.",
+        "You're embarrassing us in front of the Wizards."
+    ];
+
+    return lines[Math.floor(Math.random() * lines.length)];
+}
+
+function checkGameOver() {
+
+    for (let c = 0; c < COLS; c++) {
+
+        if (grid[ROWS - 1][c]) {
+
+            paused = true;
+
+            jarvis("L + Ratio + You should have gone for the head 💀");
+
+            setTimeout(() => {
+                alert("GAME OVER");
+                location.reload();
+            }, 500);
+        }
+    }
+}
+
+function drawStars() {
+
+    for (let i = 0; i < 100; i++) {
+
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+
+        ctx.fillRect(
+            (i * 97) % canvas.width,
+            (i * 57) % canvas.height,
+            2,
+            2
+        );
+    }
+}
+
+function gameLoop() {
+
+    if (paused) return;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawStars();
+
+    drawGrid();
+
+    drawShooter();
+
+    updateShot();
+
+    if (currentShot) {
+
+        drawBubble(
+            currentShot.x,
+            currentShot.y,
+            currentShot.color
+        );
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+document.querySelector(".pause").onclick = () => {
+
+    paused = !paused;
+
+    jarvis(
+        paused
+        ? "Time Stone activated ⏸"
+        : "Back in action ⚡"
+    );
+
+    if (!paused) {
+        gameLoop();
+    }
+};
+
+document.querySelector(".close").onclick = () => {
+    location.reload();
+};
+
+document.getElementById("startBtn").onclick = () => {
+
+    document.getElementById("startScreen").style.display = "none";
+
+    generateMission();
+
+    gameLoop();
+};
+
+</script>
+
+</body>
+</html>

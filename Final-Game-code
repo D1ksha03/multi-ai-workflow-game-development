@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Mosaic – Avengers Assemble</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --neon-red:#ff2244;--neon-blue:#00aaff;--neon-green:#00ff88;
+  --neon-gold:#ffcc00;--font-main:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif;
+}
+body{background:#000;color:#c8d8ff;font-family:var(--font-body);overflow:hidden;height:100vh;width:100vw;}
+#star-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* START */
+#start-screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#040820 0%,#000 70%);}
+.avengers-logo{font-family:var(--font-main);font-size:clamp(14px,2.5vw,28px);font-weight:900;letter-spacing:4px;color:#fff;text-align:center;margin-bottom:8px;text-shadow:0 0 20px var(--neon-blue);}
+.game-title{font-family:var(--font-main);font-size:clamp(26px,5vw,60px);font-weight:900;letter-spacing:6px;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,var(--neon-blue),var(--neon-green),var(--neon-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:tp 3s ease-in-out infinite;}
+@keyframes tp{0%,100%{filter:brightness(1);}50%{filter:brightness(1.4);}}
+.mission-brief{margin:20px auto;max-width:520px;padding:18px 24px;background:rgba(0,170,255,0.06);border:1px solid rgba(0,170,255,0.25);border-radius:8px;font-size:15px;line-height:1.7;color:#8ab;text-align:center;backdrop-filter:blur(8px);}
+.mission-brief strong{color:var(--neon-blue);}
+.start-btn{margin-top:24px;padding:14px 48px;font-family:var(--font-main);font-size:18px;font-weight:700;letter-spacing:3px;color:#000;cursor:pointer;border:none;background:linear-gradient(135deg,var(--neon-green),var(--neon-blue));border-radius:4px;box-shadow:0 0 20px var(--neon-green);transition:all .3s;}
+.start-btn:hover{transform:scale(1.05);box-shadow:0 0 36px var(--neon-green);}
+
+/* GAME */
+#game-screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;}
+#top-bar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(0,0,20,.95);border-bottom:1px solid rgba(0,170,255,.2);flex-shrink:0;}
+.hud-item{display:flex;flex-direction:column;align-items:center;}
+.hud-label{font-size:9px;letter-spacing:2px;color:#445;font-family:var(--font-main);}
+.hud-value{font-family:var(--font-main);font-size:16px;font-weight:700;color:var(--neon-blue);text-shadow:0 0 8px var(--neon-blue);}
+.hud-title{font-family:var(--font-main);font-size:9px;color:var(--neon-gold);letter-spacing:1px;margin-top:1px;}
+.top-btns{display:flex;gap:10px;}
+.icon-btn{width:36px;height:36px;border-radius:4px;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;font-family:var(--font-main);font-weight:700;transition:all .2s;}
+#pause-btn{background:rgba(0,255,136,.1);border:1px solid var(--neon-green);color:var(--neon-green);box-shadow:0 0 8px rgba(0,255,136,.3);}
+#pause-btn:hover{background:rgba(0,255,136,.25);}
+#close-btn{background:rgba(255,34,68,.1);border:1px solid var(--neon-red);color:var(--neon-red);box-shadow:0 0 8px rgba(255,34,68,.3);}
+#close-btn:hover{background:rgba(255,34,68,.25);}
+#game-body{display:flex;flex:1;overflow:hidden;}
+#main-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;}
+#game-canvas{display:block;cursor:crosshair;}
+#right-panel{width:200px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(0,0,20,.95);border-left:1px solid rgba(0,170,255,.15);padding:10px;gap:10px;overflow-y:auto;}
+.panel-header{font-family:var(--font-main);font-size:10px;letter-spacing:2px;color:#445;text-align:center;border-bottom:1px solid rgba(0,170,255,.15);padding-bottom:6px;}
+#hologram-canvas{display:block;margin:0 auto;border:1px solid rgba(0,255,136,.2);border-radius:4px;background:rgba(0,255,136,.02);}
+.mission-info{font-size:11px;color:#8ab;text-align:center;line-height:1.5;}
+.mission-info span{color:var(--neon-green);font-weight:600;}
+#jarvis-box{background:rgba(0,170,255,.04);border:1px solid rgba(0,170,255,.2);border-radius:4px;padding:8px;flex:1;min-height:80px;}
+.jarvis-label{font-family:var(--font-main);font-size:9px;letter-spacing:1px;color:var(--neon-blue);margin-bottom:6px;}
+#jarvis-text{font-size:12px;color:#9bc;line-height:1.5;font-style:italic;transition:opacity .3s;}
+#next-wrap{text-align:center;}
+
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,10,.85);backdrop-filter:blur(4px);}
+.overlay.active{display:flex;}
+.overlay-box{background:#050518;border:1px solid rgba(0,170,255,.3);border-radius:8px;padding:40px;text-align:center;max-width:420px;box-shadow:0 0 40px rgba(0,170,255,.15);}
+.overlay-title{font-family:var(--font-main);font-size:28px;font-weight:900;margin-bottom:12px;color:var(--neon-blue);text-shadow:0 0 20px var(--neon-blue);}
+.overlay-msg{font-size:16px;color:#9bc;margin-bottom:24px;line-height:1.6;}
+.overlay-score{font-family:var(--font-main);font-size:36px;color:var(--neon-gold);text-shadow:0 0 16px var(--neon-gold);margin-bottom:8px;}
+.overlay-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ov-btn{padding:10px 28px;font-family:var(--font-main);font-size:13px;font-weight:700;letter-spacing:2px;border:none;cursor:pointer;border-radius:4px;transition:all .2s;}
+.ov-btn.primary{background:var(--neon-green);color:#000;box-shadow:0 0 12px rgba(0,255,136,.5);}
+.ov-btn.primary:hover{box-shadow:0 0 24px var(--neon-green);}
+.ov-btn.secondary{background:transparent;color:var(--neon-red);border:1px solid var(--neon-red);}
+.ov-btn.secondary:hover{background:rgba(255,34,68,.1);}
+#level-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;font-family:var(--font-main);font-size:36px;font-weight:900;color:var(--neon-gold);text-shadow:0 0 30px var(--neon-gold);pointer-events:none;opacity:0;transition:opacity .3s;text-align:center;}
+</style>
+</head>
+<body>
+<canvas id="star-canvas"></canvas>
+
+<!-- START -->
+<div id="start-screen">
+  <div class="avengers-logo">⬡ STARK INDUSTRIES PRESENTS ⬡</div>
+  <div class="game-title">PROJECT MOSAIC</div>
+  <div style="font-family:var(--font-main);font-size:13px;letter-spacing:4px;color:#445;margin-bottom:24px;">AVENGERS ASSEMBLE</div>
+  <div class="mission-brief">
+    <strong>MISSION BRIEFING — CLASSIFIED</strong><br><br>
+    Bubbles <strong>drop from the top</strong>. Click anywhere on the column to drop a bubble there.<br>
+    Match the <strong>Hologram pattern</strong> on the right — color &amp; shape — anywhere in the 8×15 grid.<br><br>
+    <strong>Don't let bubbles stack past Row 1.</strong> That's a Thanos-level failure.
+  </div>
+  <button class="start-btn" id="start-btn">INITIATE PROTOCOL</button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="top-bar">
+    <div class="hud-item">
+      <div class="hud-label">SCORE</div>
+      <div class="hud-value" id="score-display">0</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">AGENT TITLE</div>
+      <div class="hud-title" id="title-display">Winter Soldier Fanboy</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">LEVEL</div>
+      <div class="hud-value" id="level-display">1</div>
+    </div>
+    <div class="top-btns">
+      <button class="icon-btn" id="pause-btn">⏸</button>
+      <button class="icon-btn" id="close-btn">✕</button>
+    </div>
+  </div>
+  <div id="game-body">
+    <div id="main-canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+    </div>
+    <div id="right-panel">
+      <div class="panel-header">◈ HOLOGRAM TARGET ◈</div>
+      <canvas id="hologram-canvas" width="160" height="160"></canvas>
+      <div class="mission-info">Match this pattern<br>anywhere on the grid<br><span id="mission-colors-label"></span></div>
+      <div class="panel-header" style="margin-top:4px;">◈ NEXT BUBBLE ◈</div>
+      <div id="next-wrap"><canvas id="next-canvas" width="50" height="50"></canvas></div>
+      <div class="panel-header" style="margin-top:4px;">◈ J.A.R.V.I.S ◈</div>
+      <div id="jarvis-box">
+        <div class="jarvis-label">AI TACTICAL ADVISOR</div>
+        <div id="jarvis-text">Initializing systems, sir...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div class="overlay" id="pause-overlay">
+  <div class="overlay-box">
+    <div class="overlay-title">TIME STONE ACTIVATED</div>
+    <div class="overlay-msg">Time is paused, Avenger.<br>Even Strange takes a breather.</div>
+    <div class="overlay-btns">
+      <button class="ov-btn primary" id="resume-btn">RESUME</button>
+      <button class="ov-btn secondary" id="pause-quit-btn">QUIT MISSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay" id="gameover-overlay">
+  <div class="overlay-box">
+    <div class="overlay-title">MISSION FAILED</div>
+    <div class="overlay-msg" id="go-msg"></div>
+    <div class="overlay-score" id="go-score"></div>
+    <div style="font-family:var(--font-main);font-size:13px;color:var(--neon-gold);margin-bottom:20px;" id="go-rank"></div>
+    <div class="overlay-btns">
+      <button class="ov-btn primary" id="retry-btn">RETRY MISSION</button>
+      <button class="ov-btn secondary" id="menu-btn">MAIN MENU</button>
+    </div>
+  </div>
+</div>
+
+<div id="level-banner"></div>
+
+<script>
+/* ======== STARS ======== */
+(()=>{
+  const c=document.getElementById('star-canvas'),x=c.getContext('2d');
+  let s=[];
+  const init=()=>{c.width=innerWidth;c.height=innerHeight;s=[];const n=Math.floor(c.width*c.height/3000);for(let i=0;i<n;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.4+.2,a:Math.random(),da:Math.random()*.006-.003});};
+  const draw=()=>{x.clearRect(0,0,c.width,c.height);for(const p of s){p.a+=p.da;if(p.a<0||p.a>1)p.da*=-1;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fillStyle=`rgba(180,200,255,${p.a*.8})`;x.fill();}requestAnimationFrame(draw);};
+  window.addEventListener('resize',init);init();draw();
+})();
+
+/* ======== CONSTANTS ======== */
+const COLS=8,ROWS=15;
+const COLORS={R:{hex:'#ff2244',glow:'#ff2244',name:'Red'},B:{hex:'#00aaff',glow:'#00aaff',name:'Blue'},G:{hex:'#00ff88',glow:'#00ff88',name:'Green'}};
+const CK=['R','B','G'];
+
+const JARVIS_GOOD=["No cap, your aim is absolutely fire 🔥","Stark would be lowkey jealous rn","That's Hawkeye-level precision, bestie","W drop. Tony would approve fr","Slay energy. Cap would salute.","You understood the assignment, no cap."];
+const JARVIS_MISS=["That's not very 'Strongest Avenger' of you...","Is this your first time in the Multiverse?","Even Thanos had better aim, respectfully.","Natasha is watching and she's cringing rn.","Main character energy? More like NPC energy."];
+const JARVIS_COMPLETE=["SHEESH! Pattern matched. You're built different 💀","The Infinity Gauntlet would be proud.","No shot you just did that. Legendary.","S-tier Avenger behavior right there 🫡","We are SO back. Mission complete, bestie.","That's the tweet. GOAT confirmed."];
+const JARVIS_LOSE=["L + Ratio + You should have gone for the head.","You're embarrassing us in front of the Wizards.","Dread it, run from it, the top arrives all the same.","This is not the Endgame we wanted.","Even Ant-Man had a better plan tbh."];
+const TITLES=[[0,490,'Winter Soldier Fanboy'],[500,990,'Low-Key Loki'],[1000,1490,'Vibe-Ranium Soldier'],[1500,Infinity,'The Main Character']];
+
+/* ======== STATE ======== */
+let canvas,ctx,holCanvas,holCtx,nextCanvas,nextCtx;
+let CELL=40,grid=[],score=0,level=1,paused=false,isDead=false;
+let curColor='',nxtColor='';
+let dropping=false,dropCol=0,dropX=0,dropY=0,dropVY=0;
+let mission=null,animFrame=null,holAnim=null;
+let highlightCells=[];// cells to flash on match
+
+function rnd(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function rndColor(){return CK[Math.floor(Math.random()*3)];}
+function getTitle(s){for(const t of TITLES)if(s>=t[0]&&s<=t[1])return t[2];return TITLES[3][2];}
+
+/* ======== JARVIS ======== */
+function jarvis(arr){
+  const el=document.getElementById('jarvis-text');
+  el.style.opacity=0;
+  setTimeout(()=>{el.textContent=rnd(arr);el.style.opacity=1;},220);
+}
+
+/* ======== CANVAS RESIZE ======== */
+function resizeCanvas(){
+  const wrap=document.getElementById('main-canvas-wrap');
+  const aw=wrap.clientWidth-20,ah=wrap.clientHeight-20;
+  CELL=Math.floor(Math.min(aw/COLS,ah/ROWS));
+  if(CELL<24)CELL=24;
+  canvas.width=COLS*CELL;canvas.height=ROWS*CELL;
+}
+
+/* ======== BUBBLE DRAWING ======== */
+function drawBubble(c,x,y,r,ck,gm){
+  const col=COLORS[ck];
+  c.save();
+  c.shadowColor=col.glow;c.shadowBlur=(gm||1)*16;
+  const g=c.createRadialGradient(x-r*.3,y-r*.3,r*.08,x,y,r);
+  g.addColorStop(0,'rgba(255,255,255,.55)');
+  g.addColorStop(.4,col.hex);
+  g.addColorStop(1,col.hex+'77');
+  c.beginPath();c.arc(x,y,r,0,Math.PI*2);
+  c.fillStyle=g;c.fill();
+  c.shadowBlur=0;
+  c.beginPath();c.arc(x,y,r,0,Math.PI*2);
+  c.strokeStyle=col.hex;c.lineWidth=1.5;c.stroke();
+  c.restore();
+}
+
+/* ======== GRID DRAWING ======== */
+function drawGrid(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // grid lines
+  ctx.strokeStyle='rgba(0,100,200,.08)';ctx.lineWidth=.5;
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,ROWS*CELL);ctx.stroke();}
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(COLS*CELL,r*CELL);ctx.stroke();}
+
+  // danger zone row 0
+  ctx.fillStyle='rgba(255,34,68,.05)';ctx.fillRect(0,0,canvas.width,CELL);
+  ctx.strokeStyle='rgba(255,34,68,.3)';ctx.lineWidth=1;ctx.strokeRect(0,0,canvas.width,CELL);
+
+  // highlight matched cells
+  for(const [r,c] of highlightCells){
+    ctx.fillStyle='rgba(255,255,200,.18)';
+    ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
+  }
+
+  // bubbles
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(!grid[r][c])continue;
+      drawBubble(ctx,c*CELL+CELL/2,r*CELL+CELL/2,CELL/2-3,grid[r][c]);
+    }
+  }
+
+  // column hover indicator (top row slot)
+  if(!dropping&&hoverCol>=0&&hoverCol<COLS){
+    ctx.fillStyle='rgba(0,170,255,.12)';
+    ctx.fillRect(hoverCol*CELL,0,CELL,CELL);
+    // draw ghost bubble at top of hovered col
+    const topSlot=getDropRow(hoverCol);
+    if(topSlot>=0){
+      ctx.globalAlpha=.35;
+      drawBubble(ctx,hoverCol*CELL+CELL/2,topSlot*CELL+CELL/2,CELL/2-3,curColor);
+      ctx.globalAlpha=1;
+    }
+    // arrow indicator at top
+    ctx.fillStyle=COLORS[curColor].hex;
+    ctx.globalAlpha=.7;
+    ctx.beginPath();
+    ctx.moveTo(hoverCol*CELL+CELL/2,4);
+    ctx.lineTo(hoverCol*CELL+CELL/2-7,14);
+    ctx.lineTo(hoverCol*CELL+CELL/2+7,14);
+    ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ======== DROP BULLET DRAWING ======== */
+function drawDrop(){
+  if(!dropping)return;
+  drawBubble(ctx,dropX,dropY,CELL/2-3,curColor,2);
+}
+
+/* ======== HOVER ======== */
+let hoverCol=-1;
+function onMouseMove(e){
+  if(paused||isDead||dropping)return;
+  const rect=canvas.getBoundingClientRect();
+  hoverCol=Math.floor((e.clientX-rect.left)/CELL);
+}
+function onTouchMove(e){
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  hoverCol=Math.floor((e.touches[0].clientX-rect.left)/CELL);
+}
+function onMouseLeave(){hoverCol=-1;}
+
+/* ======== SHOOT (drop) ======== */
+function onShoot(e){
+  if(paused||isDead||dropping)return;
+  const rect=canvas.getBoundingClientRect();
+  const col=Math.floor((e.clientX-rect.left)/CELL);
+  startDrop(col);
+}
+function onTouchEnd(e){
+  if(paused||isDead||dropping)return;
+  const rect=canvas.getBoundingClientRect();
+  const col=Math.floor((e.changedTouches[0].clientX-rect.left)/CELL);
+  startDrop(col);
+}
+
+function getDropRow(col){
+  // returns the row where this bubble will land (topmost empty, stacked from bottom)
+  // bubbles fall down and stack; find the topmost empty slot above the first occupied or bottom
+  for(let r=ROWS-1;r>=0;r--){
+    if(!grid[r][col])return r;
+  }
+  return -1;// column full
+}
+
+function startDrop(col){
+  if(col<0||col>=COLS)return;
+  const landRow=getDropRow(col);
+  if(landRow<0){jarvis(JARVIS_MISS);return;}// col full
+  dropping=true;
+  dropCol=col;
+  dropX=col*CELL+CELL/2;
+  dropY=CELL/2;// start at top row center
+  dropVY=CELL*0.32;
+  hoverCol=-1;
+}
+
+/* ======== PHYSICS UPDATE ======== */
+function updateDrop(){
+  if(!dropping)return;
+  dropY+=dropVY;
+  const landRow=getDropRow(dropCol);
+  const landY=landRow*CELL+CELL/2;
+  if(dropY>=landY){
+    dropping=false;
+    // place bubble
+    grid[landRow][dropCol]=curColor;
+
+    // game over? if landed in row 0
+    if(landRow===0){
+      triggerGameOver();return;
+    }
+
+    const matched=checkMatch();
+    if(matched){
+      score+=10;
+      updateHUD();
+      checkLevelUp();
+      setTimeout(()=>{
+        clearMatchedCells();
+        applyGravity();
+        highlightCells=[];
+        generateMission();
+        jarvis(JARVIS_COMPLETE);
+        advanceBubble();
+      },320);
+    } else {
+      jarvis(Math.random()<.3?JARVIS_MISS:JARVIS_GOOD);
+      advanceBubble();
+    }
+  }
+}
+
+function advanceBubble(){
+  curColor=nxtColor;
+  nxtColor=rndColor();
+  drawNextBubble();
+}
+
+/* ======== MATCH CHECK ======== */
+// Returns true and stores matching cell coords in highlightCells if pattern found
+function checkMatch(){
+  if(!mission)return false;
+  const sh=mission.shape;
+  const sr=sh.length,sc=sh[0].length;
+  for(let gr=0;gr<=ROWS-sr;gr++){
+    for(let gc=0;gc<=COLS-sc;gc++){
+      let ok=true;
+      for(let r=0;r<sr&&ok;r++){
+        for(let c=0;c<sc&&ok;c++){
+          const mc=sh[r][c];
+          if(mc&&grid[gr+r][gc+c]!==mc)ok=false;
+        }
+      }
+      if(ok){
+        highlightCells=[];
+        for(let r=0;r<sr;r++)for(let c=0;c<sc;c++)if(sh[r][c])highlightCells.push([gr+r,gc+c]);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function clearMatchedCells(){
+  for(const [r,c] of highlightCells)grid[r][c]=null;
+}
+
+/* ======== GRAVITY ======== */
+function applyGravity(){
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(let c=0;c<COLS;c++){
+      for(let r=ROWS-2;r>=0;r--){
+        if(grid[r][c]!==null&&grid[r+1][c]===null){
+          let bot=r+1;
+          while(bot<ROWS-1&&grid[bot+1][c]===null)bot++;
+          grid[bot][c]=grid[r][c];
+          grid[r][c]=null;
+          changed=true;
+        }
+      }
+    }
+  }
+}
+
+/* ======== MISSION ======== */
+function generateMission(){
+  let shape;
+  if(level===1){
+    const t=Math.floor(Math.random()*3);
+    if(t===0){const c=rndColor();shape=[[c,c]];}
+    else if(t===1){const c=rndColor();shape=[[c],[c],[c]];}
+    else{const c=rndColor();shape=[[c,c],[c,c]];}
+  } else if(level===2){
+    const c1=rndColor();let c2=rndColor();while(c2===c1)c2=rndColor();
+    shape=[[c1,c2,c1],[c2,c1,c2],[c1,c2,c1]];
+  } else {
+    const [a,b,g]=['R','B','G'];
+    shape=[[a,b,g,a],[g,a,b,g],[b,g,a,b],[a,b,g,a]];
+  }
+  mission={shape};
+  drawHologram();
+  const colors=[...new Set(shape.flat().filter(Boolean))].map(k=>COLORS[k].name);
+  document.getElementById('mission-colors-label').textContent='Colors: '+colors.join(', ');
+}
+
+function drawHologram(){
+  holCtx.clearRect(0,0,160,160);
+  if(!mission)return;
+  const sh=mission.shape,rows=sh.length,cols=sh[0].length;
+  const cs=Math.min(Math.floor(150/Math.max(rows,cols)),36);
+  const ox=(160-cols*cs)/2,oy=(160-rows*cs)/2;
+  const t=Date.now()*.002;
+  holCtx.globalAlpha=.82+.18*Math.sin(t);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    if(!sh[r][c])continue;
+    drawBubble(holCtx,ox+c*cs+cs/2,oy+r*cs+cs/2,cs/2-2,sh[r][c],1.4);
+  }
+  holCtx.globalAlpha=1;
+  cancelAnimationFrame(holAnim);
+  holAnim=requestAnimationFrame(drawHologram);
+}
+
+function drawNextBubble(){
+  nextCtx.clearRect(0,0,50,50);
+  drawBubble(nextCtx,25,25,14,nxtColor);
+}
+
+/* ======== HUD ======== */
+function updateHUD(){
+  document.getElementById('score-display').textContent=score;
+  document.getElementById('level-display').textContent=level;
+  document.getElementById('title-display').textContent=getTitle(score);
+}
+
+function checkLevelUp(){
+  const nl=score>=1000?3:score>=500?2:1;
+  if(nl>level){level=nl;showBanner('LEVEL '+nl+' UNLOCKED');}
+}
+
+function showBanner(txt){
+  const b=document.getElementById('level-banner');
+  b.textContent=txt;b.style.opacity=1;
+  setTimeout(()=>{b.style.opacity=0;},2200);
+}
+
+/* ======== GAME LOOP ======== */
+function gameLoop(){
+  if(isDead)return;
+  if(!paused){
+    updateDrop();
+    drawGrid();
+    drawDrop();
+  }
+  animFrame=requestAnimationFrame(gameLoop);
+}
+
+/* ======== GAME OVER ======== */
+function triggerGameOver(){
+  isDead=true;cancelAnimationFrame(animFrame);cancelAnimationFrame(holAnim);
+  jarvis(JARVIS_LOSE);
+  document.getElementById('go-score').textContent=score+' PTS';
+  document.getElementById('go-rank').textContent=getTitle(score);
+  document.getElementById('go-msg').textContent=rnd(JARVIS_LOSE);
+  document.getElementById('gameover-overlay').classList.add('active');
+}
+
+/* ======== INIT ======== */
+function initGame(){
+  canvas=document.getElementById('game-canvas');
+  ctx=canvas.getContext('2d');
+  holCanvas=document.getElementById('hologram-canvas');
+  holCtx=holCanvas.getContext('2d');
+  nextCanvas=document.getElementById('next-canvas');
+  nextCtx=nextCanvas.getContext('2d');
+
+  resizeCanvas();
+
+  grid=[];for(let r=0;r<ROWS;r++)grid.push(new Array(COLS).fill(null));
+  score=0;level=1;paused=false;isDead=false;dropping=false;hoverCol=-1;highlightCells=[];
+
+  updateHUD();
+  curColor=rndColor();nxtColor=rndColor();
+  drawNextBubble();
+  generateMission();
+  jarvis(["All systems online, sir. Let's assemble.","JARVIS online. Awaiting your deployment order.","Deploying tactical guidance. No pressure... actually, pressure."]);
+
+  canvas.addEventListener('mousemove',onMouseMove);
+  canvas.addEventListener('mouseleave',onMouseLeave);
+  canvas.addEventListener('click',onShoot);
+  canvas.addEventListener('touchmove',onTouchMove,{passive:false});
+  canvas.addEventListener('touchend',onTouchEnd,{passive:false});
+
+  cancelAnimationFrame(animFrame);
+  gameLoop();
+}
+
+function destroyListeners(){
+  if(!canvas)return;
+  canvas.removeEventListener('mousemove',onMouseMove);
+  canvas.removeEventListener('mouseleave',onMouseLeave);
+  canvas.removeEventListener('click',onShoot);
+  canvas.removeEventListener('touchmove',onTouchMove);
+  canvas.removeEventListener('touchend',onTouchEnd);
+}
+
+function resetToMenu(){
+  cancelAnimationFrame(animFrame);cancelAnimationFrame(holAnim);
+  destroyListeners();
+  document.getElementById('gameover-overlay').classList.remove('active');
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('start-screen').style.display='flex';
+  document.getElementById('pause-btn').textContent='⏸';
+}
+
+/* ======== BUTTONS ======== */
+document.getElementById('start-btn').addEventListener('click',()=>{
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  initGame();
+});
+document.getElementById('pause-btn').addEventListener('click',()=>{
+  if(isDead)return;
+  paused=!paused;
+  document.getElementById('pause-btn').textContent=paused?'▶':'⏸';
+  if(paused)document.getElementById('pause-overlay').classList.add('active');
+  else{document.getElementById('pause-overlay').classList.remove('active');gameLoop();}
+});
+document.getElementById('resume-btn').addEventListener('click',()=>{
+  paused=false;document.getElementById('pause-btn').textContent='⏸';
+  document.getElementById('pause-overlay').classList.remove('active');
+  gameLoop();
+});
+document.getElementById('pause-quit-btn').addEventListener('click',resetToMenu);
+document.getElementById('close-btn').addEventListener('click',resetToMenu);
+document.getElementById('retry-btn').addEventListener('click',()=>{
+  document.getElementById('gameover-overlay').classList.remove('active');
+  destroyListeners();
+  cancelAnimationFrame(animFrame);cancelAnimationFrame(holAnim);
+  score=0;level=1;
+  initGame();
+});
+document.getElementById('menu-btn').addEventListener('click',resetToMenu);
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&document.getElementById('game-screen').style.display!=='none')
+    document.getElementById('pause-btn').click();
+});
+window.addEventListener('resize',()=>{if(!isDead)resizeCanvas();});
+</script>
+</body>
+</html>

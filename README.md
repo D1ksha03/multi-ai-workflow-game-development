@@ -27,7 +27,7 @@ HTML5 Canvas, JavaScript, CSS
 
 
 ⚖️ Comparison Summary
-Criteria                    	ChatGPT	              Claude
+|Criteria   |                 	ChatGPT	   |           Claude|
 Code completeness	
 	
 
